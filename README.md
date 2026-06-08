@@ -1,4 +1,5 @@
-# [心] PS Nano Banana Bridge
+<img width="64" height="64" alt="1" src="https://github.com/user-attachments/assets/728bda4e-ba20-499f-b52c-fd6648d727c6" />
+# [心AI] PS Nano Banana Bridge
 
 Photoshop 和 Nano Banana / Comfly API 的桥接插件。
 （感谢@TSUNE的技术支持）
@@ -16,3 +17,5 @@ Photoshop 和 Nano Banana / Comfly API 的桥接插件。
 
 香蕉api：https://ai.comfly.org/register?aff=Bg4l118073
 充值discard : https://pay.comfly.chat/pay/
+
+
