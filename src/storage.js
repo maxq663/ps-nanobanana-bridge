@@ -1,35 +1,40 @@
 (function (NB) {
   var dom = NB.dom;
-  var KEYS = NB.CONFIG_KEYS;
   var DEFS = NB.DEFAULTS;
 
-  function readLocal(key, fallback) {
-    var v = localStorage.getItem(key);
-    return v === null ? (fallback || "") : v;
-  }
+  var configFile = null;
 
-  function writeLocal(key, value) {
-    localStorage.setItem(key, String(value));
-  }
-
-  async function readSecret(key) {
+  async function getConfigFile() {
+    if (configFile) return configFile;
+    var folder = await NB.fs.getDataFolder();
     try {
-      var v = await NB.secureStorage.getItem(key);
-      if (!v) return "";
-      if (typeof v === "string") return v;
-      return new TextDecoder().decode(v);
+      configFile = await folder.getEntry("config.json");
     } catch (e) {
-      return localStorage.getItem(key + ".fallback") || "";
+      configFile = await folder.createFile("config.json", { overwrite: false });
+      await configFile.write(JSON.stringify({
+        api: { url: DEFS.apiUrl, key: "", authMode: DEFS.authMode, model: DEFS.model },
+        params: { prompt: DEFS.prompt, fitBounds: DEFS.fitBounds }
+      }, null, 2));
+    }
+    return configFile;
+  }
+
+  async function readConfigFile() {
+    var file = await getConfigFile();
+    var text = await file.read({ format: NB.formats.utf8 });
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      return {
+        api: { url: DEFS.apiUrl, key: "", authMode: DEFS.authMode, model: DEFS.model },
+        params: { prompt: DEFS.prompt, fitBounds: DEFS.fitBounds }
+      };
     }
   }
 
-  async function writeSecret(key, value) {
-    try {
-      await NB.secureStorage.setItem(key, value);
-      localStorage.removeItem(key + ".fallback");
-    } catch (e) {
-      localStorage.setItem(key + ".fallback", value);
-    }
+  async function writeConfigFile(data) {
+    var file = await getConfigFile();
+    await file.write(JSON.stringify(data, null, 2));
   }
 
   function setModelValue(value) {
@@ -71,29 +76,33 @@
   }
 
   async function loadConfig() {
-    dom.apiUrlInput.value = readLocal(KEYS.apiUrl, DEFS.apiUrl);
-    dom.apiKeyInput.value = await readSecret(KEYS.apiKey);
-    NB.setAuthMode(readLocal(KEYS.authMode, DEFS.authMode));
-    var savedModel = readLocal(KEYS.model, DEFS.model);
-    setModelValue(savedModel);
-    dom.promptInput.value = readLocal(KEYS.prompt, DEFS.prompt);
-    NB.setFitBounds(readLocal(KEYS.fitBounds, "true") === "true");
+    var data = await readConfigFile();
+    dom.apiUrlInput.value = data.api.url || DEFS.apiUrl;
+    dom.apiKeyInput.value = data.api.key || "";
+    NB.setAuthMode(data.api.authMode || DEFS.authMode);
+    setModelValue(data.api.model || DEFS.model);
+    dom.promptInput.value = data.params.prompt || DEFS.prompt;
+    NB.setFitBounds(data.params.fitBounds !== false);
   }
 
   async function saveConfig() {
-    writeLocal(KEYS.apiUrl, dom.apiUrlInput.value.trim());
-    await writeSecret(KEYS.apiKey, dom.apiKeyInput.value.trim());
-    writeLocal(KEYS.authMode, NB.state.currentAuthMode);
-    writeLocal(KEYS.model, dom.modelInput.value || DEFS.model);
-    writeLocal(KEYS.prompt, dom.promptInput.value.trim() || DEFS.prompt);
-    writeLocal(KEYS.fitBounds, String(NB.state.currentFitBounds));
+    var data = {
+      api: {
+        url: dom.apiUrlInput.value.trim() || DEFS.apiUrl,
+        key: dom.apiKeyInput.value.trim(),
+        authMode: NB.state.currentAuthMode,
+        model: dom.modelInput.value || DEFS.model
+      },
+      params: {
+        prompt: dom.promptInput.value.trim() || DEFS.prompt,
+        fitBounds: NB.state.currentFitBounds
+      }
+    };
+    await writeConfigFile(data);
     NB.setStatus("配置已保存。", "ok");
   }
 
-  NB.readLocal = readLocal;
-  NB.writeLocal = writeLocal;
-  NB.readSecret = readSecret;
-  NB.writeSecret = writeSecret;
+  NB.readConfigFile = readConfigFile;
   NB.setModelValue = setModelValue;
   NB.populateModels = populateModels;
   NB.loadConfig = loadConfig;

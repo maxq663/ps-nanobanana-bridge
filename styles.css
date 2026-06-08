@@ -44,8 +44,12 @@ body {
   flex-direction: column;
   padding: 0 14px 20px 14px;
   height: 100vh;
-  overflow-y: scroll;
+  overflow-y: auto;
   box-sizing: border-box;
+}
+
+#panel > * {
+  flex-shrink: 0;
 }
 
 .header {

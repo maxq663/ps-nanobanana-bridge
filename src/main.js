@@ -6,14 +6,6 @@
     NB.setStatus("图层状态已刷新。", "ok");
   });
 
-  dom.apiKeyInput.addEventListener("change", function () {
-    NB.writeSecret(NB.CONFIG_KEYS.apiKey, dom.apiKeyInput.value.trim());
-  });
-
-  dom.apiUrlInput.addEventListener("change", function () {
-    NB.writeLocal(NB.CONFIG_KEYS.apiUrl, dom.apiUrlInput.value.trim());
-  });
-
   dom.saveConfigBtn.addEventListener("click", function () { NB.withBusy(NB.saveConfig); });
 
   dom.testBtn.addEventListener("click", function () {
