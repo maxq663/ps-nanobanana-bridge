@@ -14,5 +14,5 @@ Photoshop 和 Nano Banana / Comfly API 的桥接插件。
 
 开发中。
 
-香蕉api ：https://ai.comfly.org
+香蕉api：https://ai.comfly.org/register?aff=Bg4l118073
 充值discard : https://pay.comfly.chat/pay/
