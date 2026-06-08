@@ -1,7 +1,7 @@
 # PS Nano Banana Bridge
 
 Photoshop 和 Nano Banana / Comfly API 的桥接插件。
-（感谢@小t的技术支持）
+（感谢@TSUNE的技术支持）
 ## 功能
 
 - 从 Photoshop 当前图层导出图片
