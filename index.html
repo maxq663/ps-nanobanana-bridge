@@ -83,8 +83,11 @@
         </div>
 
         <div class="field">
-          <label for="promptInput">提示词</label>
-          <textarea id="promptInput" rows="2">处理这个 Photoshop 选中图层，并返回编辑后的图片。</textarea>
+          <div class="field-header">
+            <label>提示词</label>
+            <button class="btn-load" id="loadPromptBtn">加载文件</button>
+          </div>
+          <textarea class="prompt-area" id="promptInput" spellcheck="false" wrap="soft">处理这个 Photoshop 选中图层，并返回编辑后的图片。</textarea>
         </div>
       </div>
 

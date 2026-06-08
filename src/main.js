@@ -17,6 +17,10 @@
   dom.sendApiBtn.addEventListener("click", function () { NB.withBusy(NB.sendToApi); });
   dom.importPsBtn.addEventListener("click", function () { NB.withBusy(NB.importToPs); });
 
+  dom.loadPromptBtn.addEventListener("click", function () {
+    NB.withBusy(NB.loadPromptFromFile);
+  });
+
   dom.fitBoundsBtn.addEventListener("click", function () {
     NB.setFitBounds(!NB.state.currentFitBounds);
   });

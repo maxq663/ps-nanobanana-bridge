@@ -21,7 +21,8 @@
     previewResultEmpty: $("previewResultEmpty"),
     testBtn: $("testBtn"),
     saveConfigBtn: $("saveConfigBtn"),
-    refreshBtn: $("refreshBtn")
+    refreshBtn: $("refreshBtn"),
+    loadPromptBtn: $("loadPromptBtn")
   };
 
   function setStatus(msg, type) {

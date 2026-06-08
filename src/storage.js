@@ -102,9 +102,18 @@
     NB.setStatus("配置已保存。", "ok");
   }
 
+  async function loadPromptFromFile() {
+    var file = await NB.fs.getFileForOpening({ types: ["txt", "json", "md"] });
+    if (!file) return;
+    var text = await file.read({ format: NB.formats.utf8 });
+    dom.promptInput.value = text;
+    NB.setStatus("已加载提示词文件: " + file.name + " (" + text.length + " 字符)", "ok");
+  }
+
   NB.readConfigFile = readConfigFile;
   NB.setModelValue = setModelValue;
   NB.populateModels = populateModels;
   NB.loadConfig = loadConfig;
   NB.saveConfig = saveConfig;
+  NB.loadPromptFromFile = loadPromptFromFile;
 })(window.NB);

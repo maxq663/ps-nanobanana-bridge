@@ -24,7 +24,7 @@
 
   NB.DEFAULTS = {
     apiUrl: "https://ai.comfly.org/v1/images/edits",
-    authMode: "bearer",
+    authMode: "api-key",
     model: "nanobanan",
     prompt: "处理这个 Photoshop 选中图层，并返回编辑后的图片。",
     fitBounds: true
