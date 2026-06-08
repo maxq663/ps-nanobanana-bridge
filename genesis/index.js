@@ -673,6 +673,15 @@ fitBoundsBtn.addEventListener("click", function () {
   setFitBounds(!currentFitBounds);
 });
 
+// consult buttons (QR code popup placeholder)
+function showConsultDialog(name) {
+  setStatus("咨询：" + name + " — 二维码功能即将上线。", "ok");
+}
+
+$("consultWoxin").addEventListener("click", function () { showConsultDialog("我心"); });
+$("consultHuixin").addEventListener("click", function () { showConsultDialog("绘欣"); });
+$("consultQianning").addEventListener("click", function () { showConsultDialog("浅柠"); });
+
 var authButtons = authModeInput.querySelectorAll(".seg");
 for (var i = 0; i < authButtons.length; i++) {
   (function (btn) {
