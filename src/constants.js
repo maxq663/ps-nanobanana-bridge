@@ -27,7 +27,8 @@
     authMode: "api-key",
     model: "nanobanan",
     prompt: "处理这个 Photoshop 选中图层，并返回编辑后的图片。",
-    fitBounds: true
+    fitBounds: true,
+    maxExportSize: 2048
   };
 
   NB.$ = function (id) {

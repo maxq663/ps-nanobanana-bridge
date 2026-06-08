@@ -5,55 +5,56 @@
   }
 
   async function exportSelection() {
-    var result;
-    await NB.core.executeAsModal(async function () {
-      var doc = NB.getActiveDocument();
-      if (!doc) throw new Error("请先打开一个 Photoshop 文档。");
+    var doc = NB.getActiveDocument();
+    if (!doc) throw new Error("请先打开一个 Photoshop 文档。");
 
-      var bounds;
-      var hasSelection = false;
-      try {
-        var sel = doc.selection;
-        var sb = sel.bounds;
-        if (sb && sb.right > sb.left && sb.bottom > sb.top) {
-          bounds = { left: sb.left, top: sb.top, right: sb.right, bottom: sb.bottom };
-          hasSelection = true;
-        }
-      } catch (e) {}
-
-      if (!hasSelection) {
-        var layer = NB.getSelectedLayer(doc);
-        if (!layer) throw new Error("请先框选区域或选择一个图层。");
-        bounds = NB.normalizeBounds(layer.bounds);
+    var bounds;
+    var hasSelection = false;
+    try {
+      var sel = doc.selection;
+      var sb = sel.bounds;
+      if (sb && sb.right > sb.left && sb.bottom > sb.top) {
+        bounds = { left: sb.left, top: sb.top, right: sb.right, bottom: sb.bottom };
+        hasSelection = true;
       }
+    } catch (e) {}
 
-      var w = Math.ceil(bounds.right - bounds.left);
-      var h = Math.ceil(bounds.bottom - bounds.top);
-      var squareSize = Math.max(w, h);
+    if (!hasSelection) {
+      var layer = NB.getSelectedLayer(doc);
+      if (!layer) throw new Error("请先框选区域或选择一个图层。");
+      bounds = NB.normalizeBounds(layer.bounds);
+    }
 
-      await NB.batchPlay([{ _obj: "copyMerged" }], {});
+    var w = Math.ceil(bounds.right - bounds.left);
+    var h = Math.ceil(bounds.bottom - bounds.top);
+    var squareSize = Math.max(w, h);
 
-      var exportDoc = await NB.app.createDocument({
-        width: squareSize, height: squareSize,
-        resolution: doc.resolution, mode: "RGBColorMode",
-        fill: "transparent", name: "Nanobanan Export"
-      });
+    await NB.batchPlay([{ _obj: "copyMerged" }], {});
 
-      await NB.batchPlay([{ _obj: "paste" }], {});
+    var exportDoc = await NB.app.createDocument({
+      width: squareSize, height: squareSize,
+      resolution: doc.resolution, mode: "RGBColorMode",
+      fill: "transparent", name: "Nanobanan Export"
+    });
 
-      var exportFile = await createTempFile("nanobanan-sel", "png");
-      await exportDoc.saveAs.png(exportFile, { compression: 6 }, true);
-      exportDoc.closeWithoutSaving();
+    await NB.batchPlay([{ _obj: "paste" }], {});
 
-      result = {
-        file: exportFile,
-        sourceDoc: doc,
-        squareSize: squareSize,
-        bounds: { left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom, width: w, height: h },
-        layerName: hasSelection ? "选区" : (doc.activeLayers[0] ? doc.activeLayers[0].name : "图层")
-      };
-    }, { commandName: "Export selection for Nanobanan" });
-    return result;
+    var maxDim = NB.DEFAULTS.maxExportSize || 2048;
+    if (squareSize > maxDim) {
+      exportDoc.resizeImage(maxDim, maxDim);
+    }
+
+    var exportFile = await createTempFile("nanobanan-sel", "png");
+    await exportDoc.saveAs.png(exportFile, { compression: 6 }, true);
+    exportDoc.closeWithoutSaving();
+
+    return {
+      file: exportFile,
+      sourceDoc: doc,
+      squareSize: squareSize,
+      bounds: { left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom, width: w, height: h },
+      layerName: hasSelection ? "选区" : (doc.activeLayers[0] ? doc.activeLayers[0].name : "图层")
+    };
   }
 
   NB.createTempFile = createTempFile;

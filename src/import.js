@@ -1,54 +1,50 @@
 (function (NB) {
   async function importToPs() {
     var state = NB.state;
-    var dom = NB.dom;
     if (!state.apiResultBase64 || !state.uploadedData) throw new Error("没有可导入的结果。");
-    NB.setStatus("正在导入到 PS...");
 
     var resultBytes = new Uint8Array(NB.arrayBufferFromBase64(state.apiResultBase64));
     var folder = await NB.fs.getTemporaryFolder();
     var file = await folder.createFile("xinban-result-" + Date.now() + ".png", { overwrite: true });
     await file.write(resultBytes, { format: NB.formats.binary });
 
-    await NB.core.executeAsModal(async function () {
-      var data = state.uploadedData;
-      var targetDoc = data.sourceDoc;
-      var targetW = data.bounds.width;
-      var targetH = data.bounds.height;
-      var targetL = data.bounds.left;
-      var targetT = data.bounds.top;
-      var squareSize = data.squareSize;
-      var docRes = targetDoc.resolution;
+    var data = state.uploadedData;
+    var targetDoc = data.sourceDoc;
+    var targetW = data.bounds.width;
+    var targetH = data.bounds.height;
+    var targetL = data.bounds.left;
+    var targetT = data.bounds.top;
+    var squareSize = data.squareSize;
+    var docRes = targetDoc.resolution;
 
-      var sessionToken = await NB.fs.createSessionToken(file);
+    var sessionToken = await NB.fs.createSessionToken(file);
 
-      // Step 1: crop the square result to original W×H
-      var cropDoc = await NB.app.createDocument({
-        width: targetW, height: targetH,
-        resolution: docRes, mode: "RGBColorMode",
-        fill: "transparent", name: "Xinban Crop"
-      });
+    var cropDoc = await NB.app.createDocument({
+      width: targetW, height: targetH,
+      resolution: docRes, mode: "RGBColorMode",
+      fill: "transparent", name: "Xinban Crop"
+    });
 
-      await NB.batchPlay([{
-        _obj: "placeEvent",
-        null: { _path: sessionToken, _kind: "local" },
-        freeTransformCenterState: { _enum: "quadCenterState", _value: "QCSAverage" },
-        offset: { _obj: "offset", horizontal: { _unit: "pixelsUnit", _value: 0 }, vertical: { _unit: "pixelsUnit", _value: 0 } }
-      }], {});
+    await NB.batchPlay([{
+      _obj: "placeEvent",
+      null: { _path: sessionToken, _kind: "local" },
+      freeTransformCenterState: { _enum: "quadCenterState", _value: "QCSAverage" },
+      offset: { _obj: "offset", horizontal: { _unit: "pixelsUnit", _value: 0 }, vertical: { _unit: "pixelsUnit", _value: 0 } }
+    }], {});
 
-      var cropLayer = cropDoc.activeLayers[0];
-      var cb = NB.normalizeBounds(cropLayer.bounds);
-      var uniformCropScale = (squareSize / cb.width) * 100;
-      var cropDx = (targetW / 2) - (cb.left + cb.width / 2);
-      var cropDy = (targetH / 2) - (cb.top + cb.height / 2);
+    var cropLayer = cropDoc.activeLayers[0];
+    var cb = NB.normalizeBounds(cropLayer.bounds);
+    var uniformCropScale = (squareSize / cb.width) * 100;
+    var cropDx = (targetW / 2) - (cb.left + cb.width / 2);
+    var cropDy = (targetH / 2) - (cb.top + cb.height / 2);
 
-      await NB.batchPlay([{
-        _obj: "transform",
-        freeTransformCenterState: { _enum: "quadCenterState", _value: "QCSAverage" },
-        offset: { _obj: "offset", horizontal: { _unit: "pixelsUnit", _value: cropDx }, vertical: { _unit: "pixelsUnit", _value: cropDy } },
-        width: { _unit: "percentUnit", _value: uniformCropScale },
-        height: { _unit: "percentUnit", _value: uniformCropScale }
-      }], {});
+    await NB.batchPlay([{
+      _obj: "transform",
+      freeTransformCenterState: { _enum: "quadCenterState", _value: "QCSAverage" },
+      offset: { _obj: "offset", horizontal: { _unit: "pixelsUnit", _value: cropDx }, vertical: { _unit: "pixelsUnit", _value: cropDy } },
+      width: { _unit: "percentUnit", _value: uniformCropScale },
+      height: { _unit: "percentUnit", _value: uniformCropScale }
+    }], {});
 
       cropDoc.flatten();
       var croppedFile = await folder.createFile("xinban-cropped-" + Date.now() + ".png", { overwrite: true });
@@ -113,19 +109,8 @@
         to: { _enum: "ordinal", _value: "none" }
       }], {});
 
-    }, { commandName: "Import result" });
-
-    NB.updateLayerStatus();
-    NB.setStatus("已传回PS，结果已作为新图层导入。", "ok");
-
     state.uploadedData = null;
     state.apiResultBase64 = null;
-    dom.sendApiBtn.disabled = true;
-    dom.importPsBtn.disabled = true;
-    dom.previewSourceImg.style.display = "none";
-    dom.previewSourceEmpty.style.display = "block";
-    dom.previewResultImg.style.display = "none";
-    dom.previewResultEmpty.style.display = "block";
   }
 
   NB.importToPs = importToPs;

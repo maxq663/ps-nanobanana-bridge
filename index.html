@@ -3,150 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <title>我心的赛博工具</title>
-    <link rel="stylesheet" href="styles.css" />
+    <style>
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #080b0c; }
+      #webview { width: 100%; height: 100%; border: none; }
+    </style>
   </head>
   <body>
-    <div id="panel">
-
-      <div class="header">
-        <div class="header-left">
-          <div class="brand-mark">心</div>
-          <div class="header-text">
-            <span class="eyebrow">NANOBANAN / PS 2026+</span>
-            <span class="title"><span class="title-highlight">我心</span>的赛博工具</span>
-          </div>
-        </div>
-        <button class="btn-icon" id="refreshBtn">刷新</button>
-      </div>
-
-      <div class="consult-bar">
-        <span class="consult-label">咨询：</span>
-        <button class="consult-btn" id="consultWoxin">我心</button>
-        <button class="consult-btn" id="consultHuixin">绘欣</button>
-        <button class="consult-btn" id="consultQianning">浅柠</button>
-      </div>
-
-      <div class="layer-bar">
-        <span class="dot dot-green"></span>
-        <span id="layerStatus">未检测到文档。</span>
-      </div>
-
-      <div class="card card-secondary">
-        <div class="card-header">
-          <span class="card-title">接口连接</span>
-          <span class="badge badge-cyan">API</span>
-        </div>
-
-        <div class="field">
-          <label for="apiUrlInput">API 地址</label>
-          <input type="text" id="apiUrlInput" placeholder="https://ai.comfly.org/v1/images/edits" />
-        </div>
-
-        <div class="field">
-          <label for="apiKeyInput">API Key</label>
-          <input type="password" id="apiKeyInput" placeholder="sk-..." />
-        </div>
-
-        <div class="field">
-          <label>鉴权方式</label>
-          <div class="seg-group" id="authModeInput">
-            <button class="seg seg-first seg-active" data-value="bearer">Bearer</button>
-            <button class="seg" data-value="x-api-key">x-api</button>
-            <button class="seg" data-value="api-key">api-key</button>
-            <button class="seg seg-last" data-value="none">None</button>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="modelInput">模型</label>
-          <select id="modelInput">
-            <option value="nanobanan">nanobanan</option>
-          </select>
-        </div>
-
-        <div class="btn-row">
-          <button class="btn-secondary" id="saveConfigBtn">保存配置</button>
-          <span class="btn-row-gap"></span>
-          <button class="btn-accent" id="testBtn">检测连接</button>
-        </div>
-
-        <div class="conn-box" id="connectionStatus">
-          <span class="dot dot-gray"></span>
-          <span id="connLabel">等待检测。</span>
-        </div>
-      </div>
-
-      <div class="card card-secondary">
-        <div class="card-header">
-          <span class="card-title">请求参数</span>
-          <span class="badge badge-amber">PNG</span>
-        </div>
-
-        <div class="field">
-          <div class="field-header">
-            <label>提示词</label>
-            <button class="btn-load" id="loadPromptBtn">加载文件</button>
-          </div>
-          <textarea class="prompt-area" id="promptInput" spellcheck="false" wrap="soft">处理这个 Photoshop 选中图层，并返回编辑后的图片。</textarea>
-        </div>
-      </div>
-
-      <div class="status-bar" id="status">就绪。我心的赛博工具 v2.0</div>
-
-      <div class="card action-card">
-        <div class="card-header">
-          <span class="card-title">操作流程</span>
-          <span class="badge badge-brand">心班</span>
-        </div>
-
-        <button class="btn-toggle toggle-on" id="fitBoundsInput">结果适配原图层边界：开启</button>
-
-        <div class="step-group">
-          <div class="step-label"><span class="step-num">1</span><span class="step-text">捕获选区</span></div>
-          <button class="btn-primary" id="uploadBtn">上传图层</button>
-          <div class="preview-box" id="previewSource">
-            <span class="preview-empty" id="previewSourceEmpty">框选区域后点击上传</span>
-            <img class="preview-img" id="previewSourceImg" />
-          </div>
-        </div>
-
-        <div class="step-divider"></div>
-
-        <div class="step-group">
-          <div class="step-label"><span class="step-num step-num-amber">2</span><span class="step-text">AI 处理</span></div>
-          <button class="btn-generate" id="sendApiBtn" disabled>上传API网站</button>
-          <div class="preview-box" id="previewResult">
-            <span class="preview-empty" id="previewResultEmpty">API 返回结果</span>
-            <img class="preview-img" id="previewResultImg" />
-          </div>
-        </div>
-
-        <div class="step-divider"></div>
-
-        <div class="step-group">
-          <div class="step-label"><span class="step-num">3</span><span class="step-text">导入结果</span></div>
-          <button class="btn-import" id="importPsBtn" disabled>传回PS</button>
-        </div>
-      </div>
-
-    </div>
-    <!-- Foundation -->
+    <webview id="webview" src="plugin:/app.html" width="100%" height="100%" uxpAllowInspector="true"></webview>
+    <!-- Host-side PS logic -->
     <script src="src/namespace.js"></script>
     <script src="src/constants.js"></script>
     <script src="src/state.js"></script>
-    <!-- Utilities -->
     <script src="src/encoding.js"></script>
-    <script src="src/ui.js"></script>
     <script src="src/ps-helpers.js"></script>
     <script src="src/storage.js"></script>
-    <!-- Business -->
-    <script src="src/api.js"></script>
     <script src="src/export.js"></script>
     <script src="src/import.js"></script>
-    <script src="src/workflow.js"></script>
-    <!-- Features -->
-    <script src="src/features/consult.js"></script>
-    <!-- Entry -->
-    <script src="src/main.js"></script>
+    <script src="host.js"></script>
   </body>
 </html>

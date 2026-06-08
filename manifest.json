@@ -23,6 +23,12 @@
   ],
   "requiredPermissions": {
     "network": { "domains": "all" },
-    "localFileSystem": "plugin"
+    "localFileSystem": "fullAccess",
+    "webview": {
+      "allow": "yes",
+      "allowLocalRendering": "yes",
+      "enableMessageBridge": "localAndRemote",
+      "domains": "all"
+    }
   }
 }
