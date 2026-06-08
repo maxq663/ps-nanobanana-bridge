@@ -1,4 +1,4 @@
-# PS Nano Banana Bridge
+# [心] PS Nano Banana Bridge
 
 Photoshop 和 Nano Banana / Comfly API 的桥接插件。
 （感谢@TSUNE的技术支持）
