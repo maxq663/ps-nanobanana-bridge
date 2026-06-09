@@ -23,14 +23,17 @@
     wv.postMessage({ type: type, data: data });
   }
 
-  async function handleExportSelection() {
+  async function handleExportSelection(args) {
+    var index = (args[0] != null) ? args[0] : 0;
     var data = await NB.exportSelection();
     var bytes = await data.file.read({ format: NB.formats.binary });
     var base64 = NB.arrayBufferToBase64(bytes);
-    NB.state.uploadedData = data;
-    NB.state.uploadedData.bytes = bytes;
+    data.bytes = bytes;
+    NB.state.uploadedImages[index] = data;
+    if (index === 0) NB.state.uploadedData = data;
     return {
       base64: base64,
+      index: index,
       layerName: data.layerName,
       width: data.bounds.width,
       height: data.bounds.height
@@ -38,9 +41,10 @@
   }
 
   async function handleImportResult() {
-    if (!NB.state.apiResultBase64 || !NB.state.uploadedData) {
+    if (!NB.state.apiResultBase64 || !NB.state.uploadedImages[0]) {
       throw new Error("没有可导入的结果。");
     }
+    NB.state.uploadedData = NB.state.uploadedImages[0];
     await NB.importToPs();
     return { ok: true };
   }
@@ -80,13 +84,29 @@
     return await NB.testConnection(config);
   }
 
+  async function handleImagesAdd(args) {
+    var index = args[0];
+    var base64 = args[1];
+    if (index < 0 || index > 3) throw new Error("无效槽位: " + index);
+    NB.state.uploadedImages[index] = { base64Only: true, bytes: NB.arrayBufferFromBase64(base64) };
+    return { ok: true, index: index };
+  }
+
+  async function handleImagesRemove(args) {
+    var index = args[0];
+    if (index < 0 || index > 3) throw new Error("无效槽位: " + index);
+    NB.state.uploadedImages[index] = null;
+    if (index === 0) NB.state.uploadedData = null;
+    return { ok: true, index: index };
+  }
+
   async function handleSendToApi(args) {
     var config = args[0];
     var prompt = args[1];
     var model = args[2];
-    if (!NB.state.uploadedData) throw new Error("请先上传图层。");
-    var imageBase64 = NB.arrayBufferToBase64(NB.state.uploadedData.bytes);
-    var resultBase64 = await NB.sendToApi(config, imageBase64, prompt, model);
+    var hasAny = NB.state.uploadedImages.some(function (img) { return img !== null; });
+    if (!hasAny) throw new Error("请先上传至少一张图片。");
+    var resultBase64 = await NB.sendToApi(config, prompt, model);
     NB.state.apiResultBase64 = resultBase64;
     return { base64: resultBase64 };
   }
@@ -99,7 +119,9 @@
     "config.save": handleConfigSave,
     "config.loadPromptFile": handleLoadPromptFile,
     "api.testConnection": handleTestConnection,
-    "api.send": handleSendToApi
+    "api.send": handleSendToApi,
+    "images.add": handleImagesAdd,
+    "images.remove": handleImagesRemove
   };
 
   async function handleMessage(msg) {

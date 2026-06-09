@@ -14,7 +14,7 @@
   NB.secureStorage = uxp.storage.secureStorage;
 
   NB.DEFAULTS = {
-    apiUrl: "https://ai.comfly.org/v1/images/edits",
+    apiUrl: "https://ai.comfly.org/v1/images/generations",
     authMode: "api-key",
     model: "nanobanan",
     prompt: "处理这个 Photoshop 选中图层，并返回编辑后的图片。",

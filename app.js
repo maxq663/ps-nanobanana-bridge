@@ -50,8 +50,7 @@
     uploadBtn: $("uploadBtn"),
     sendApiBtn: $("sendApiBtn"),
     importPsBtn: $("importPsBtn"),
-    previewSourceImg: $("previewSourceImg"),
-    previewSourceEmpty: $("previewSourceEmpty"),
+    imageGrid: $("imageGrid"),
     previewResultImg: $("previewResultImg"),
     previewResultEmpty: $("previewResultEmpty"),
     testBtn: $("testBtn"),
@@ -65,12 +64,12 @@
   var state = {
     currentAuthMode: "api-key",
     currentFitBounds: true,
-    hasUpload: false,
+    images: [null, null, null, null],
     hasResult: false
   };
 
   var DEFAULTS = {
-    apiUrl: "https://ai.comfly.org/v1/images/edits",
+    apiUrl: "https://ai.comfly.org/v1/images/generations",
     authMode: "api-key",
     model: "nanobanan",
     prompt: "处理这个 Photoshop 选中图层，并返回编辑后的图片。"
@@ -117,9 +116,41 @@
     }
   }
 
+  function hasAnyImage() {
+    return state.images.some(function (img) { return img !== null; });
+  }
+
+  function getNextEmptySlot() {
+    for (var i = 0; i < state.images.length; i++) {
+      if (!state.images[i]) return i;
+    }
+    return -1;
+  }
+
+  function updateSlotUI(index) {
+    var slot = dom.imageGrid.children[index];
+    if (!slot) return;
+    var img = slot.querySelector(".slot-img");
+    if (state.images[index]) {
+      slot.classList.add("has-image");
+      img.src = state.images[index];
+      img.style.display = "block";
+    } else {
+      slot.classList.remove("has-image");
+      img.src = "";
+      img.style.display = "none";
+    }
+  }
+
+  function updateButtons() {
+    var any = hasAnyImage();
+    dom.sendApiBtn.disabled = !any;
+    dom.importPsBtn.disabled = !state.hasResult;
+  }
+
   function setBusy(busy) {
     dom.uploadBtn.disabled = busy;
-    dom.sendApiBtn.disabled = busy || !state.hasUpload;
+    dom.sendApiBtn.disabled = busy || !hasAnyImage();
     dom.importPsBtn.disabled = busy || !state.hasResult;
     dom.testBtn.disabled = busy;
     dom.saveConfigBtn.disabled = busy;
@@ -232,18 +263,18 @@
   }
 
   async function doUpload() {
+    var index = getNextEmptySlot();
+    if (index === -1) { setStatus("所有槽位已满，请先删除再上传。", "bad"); return; }
     setStatus("正在导出框选区域...");
-    var result = await callHost("ps.exportSelection");
-    state.hasUpload = true;
-    dom.previewSourceImg.src = "data:image/png;base64," + result.base64;
-    dom.previewSourceImg.style.display = "block";
-    dom.previewSourceEmpty.style.display = "none";
-    dom.sendApiBtn.disabled = false;
-    setStatus("已上传: " + result.layerName + " " + result.width + "x" + result.height + "px", "ok");
+    var result = await callHost("ps.exportSelection", [index]);
+    state.images[index] = "data:image/png;base64," + result.base64;
+    updateSlotUI(index);
+    updateButtons();
+    setStatus("已上传到槽位 " + (index + 1) + ": " + result.layerName + " " + result.width + "x" + result.height + "px", "ok");
   }
 
   async function doSendApi() {
-    if (!state.hasUpload) throw new Error("请先上传图层。");
+    if (!hasAnyImage()) throw new Error("请先上传至少一张图片。");
     await doSaveConfig();
     dom.sendApiBtn.textContent = "处理中...";
     setStatus("正在发送到 AI 接口，请等待...");
@@ -269,14 +300,13 @@
     setStatus("正在导入到 PS...");
     await callHost("ps.importResult", []);
     setStatus("已传回PS，结果已作为新图层导入。", "ok");
-    state.hasUpload = false;
+    state.images = [null, null, null, null];
     state.hasResult = false;
-    dom.sendApiBtn.disabled = true;
-    dom.importPsBtn.disabled = true;
-    dom.previewSourceImg.style.display = "none";
-    dom.previewSourceEmpty.style.display = "block";
+    for (var i = 0; i < 4; i++) updateSlotUI(i);
+    updateButtons();
     dom.previewResultImg.style.display = "none";
     dom.previewResultEmpty.style.display = "block";
+    dom.previewResultEmpty.textContent = "API 返回结果";
   }
 
   async function doLoadPrompt() {
@@ -285,6 +315,71 @@
       dom.promptInput.value = result.text;
       setStatus("已加载提示词: " + result.name + " (" + result.text.length + " 字符)", "ok");
     }
+  }
+
+  // --- Image Slot: Remove & Drag-and-Drop ---
+
+  function doRemoveImage(index) {
+    withBusy(async function () {
+      await callHost("images.remove", [index]);
+      state.images[index] = null;
+      updateSlotUI(index);
+      updateButtons();
+      setStatus("已移除槽位 " + (index + 1) + " 的图片。", "ok");
+    });
+  }
+
+  function handleFileDrop(index, file) {
+    if (!file || !file.type.startsWith("image/")) {
+      setStatus("仅支持图片文件。", "bad");
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+      var dataUrl = reader.result;
+      var base64 = dataUrl.split(",")[1];
+      withBusy(async function () {
+        await callHost("images.add", [index, base64]);
+        state.images[index] = dataUrl;
+        updateSlotUI(index);
+        updateButtons();
+        setStatus("已拖入图片到槽位 " + (index + 1) + "。", "ok");
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function setupSlotEvents() {
+    var slots = dom.imageGrid.querySelectorAll(".image-slot");
+    for (var i = 0; i < slots.length; i++) {
+      (function (slot, index) {
+        var removeBtn = slot.querySelector(".slot-remove");
+        removeBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          doRemoveImage(index);
+        });
+
+        slot.addEventListener("dragover", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          slot.classList.add("drag-over");
+        });
+        slot.addEventListener("dragleave", function (e) {
+          e.preventDefault();
+          slot.classList.remove("drag-over");
+        });
+        slot.addEventListener("drop", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          slot.classList.remove("drag-over");
+          var files = e.dataTransfer && e.dataTransfer.files;
+          if (files && files.length > 0) handleFileDrop(index, files[0]);
+        });
+      })(slots[i], i);
+    }
+
+    dom.imageGrid.addEventListener("dragover", function (e) { e.preventDefault(); });
+    dom.imageGrid.addEventListener("drop", function (e) { e.preventDefault(); });
   }
 
   // --- Event Bindings ---
@@ -318,6 +413,7 @@
   function init() {
     if (window.uxpHost && window.uxpHost.postMessage) {
       window.uxpHost.postMessage({ type: "webview.ready" });
+      setupSlotEvents();
       doLoadConfig().catch(function (e) { setStatus(e.message, "bad"); });
     } else {
       setTimeout(init, 100);

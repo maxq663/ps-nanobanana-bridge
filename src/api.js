@@ -4,8 +4,9 @@
     try {
       var url = new URL(trimmed);
       var path = url.pathname.replace(/\/+$/, "");
-      if (!path || path === "/") { url.pathname = "/v1/images/edits"; return url.toString(); }
-      if (path === "/v1") { url.pathname = "/v1/images/edits"; return url.toString(); }
+      if (!path || path === "/") { url.pathname = "/v1/images/generations"; return url.toString(); }
+      if (path === "/v1") { url.pathname = "/v1/images/generations"; return url.toString(); }
+      if (path === "/v1/images/edits") { url.pathname = "/v1/images/generations"; return url.toString(); }
     } catch (e) {}
     return trimmed;
   }
@@ -56,24 +57,31 @@
     throw new Error("HTTP " + response.status + " " + text.slice(0, 120));
   }
 
-  async function sendToApi(config, imageBase64, prompt, model) {
+  async function sendToApi(config, prompt, model) {
     var apiUrl = normalizeApiUrl(config.url);
     var headers = buildHeaders(config);
+    headers["Content-Type"] = "application/json";
 
-    var binary = atob(imageBase64);
-    var bytes = new Uint8Array(binary.length);
-    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    var imageBlob = new Blob([bytes], { type: "image/png" });
+    var imageArray = [];
+    for (var i = 0; i < NB.state.uploadedImages.length; i++) {
+      var img = NB.state.uploadedImages[i];
+      if (!img) continue;
+      var b64 = img.bytes ? NB.arrayBufferToBase64(img.bytes) : "";
+      if (b64) imageArray.push(b64);
+    }
 
-    var form = new FormData();
-    form.append("image", imageBlob, "selection.png");
-    form.append("prompt", prompt);
-    form.append("model", model);
-    form.append("response_format", "b64_json");
+    if (imageArray.length === 0) throw new Error("没有可发送的图片。");
+
+    var body = {
+      model: model,
+      prompt: prompt,
+      response_format: "b64_json"
+    };
+    if (imageArray.length > 0) body.image = imageArray;
 
     var response;
     try {
-      response = await fetch(apiUrl, { method: "POST", headers: headers, body: form });
+      response = await fetch(apiUrl, { method: "POST", headers: headers, body: JSON.stringify(body) });
     } catch (e) {
       throw new Error("网络错误：" + (e.message || "无法连接到 API"));
     }
@@ -83,20 +91,15 @@
       throw new Error("接口请求失败：HTTP " + response.status + " " + msg.slice(0, 200));
     }
 
-    var ct = response.headers.get("content-type") || "";
+    var json = await response.json();
+    var imgData = NB.extractJsonImage(json);
     var resultBuffer;
-    if (ct.startsWith("image/")) {
-      resultBuffer = await response.arrayBuffer();
+    if (imgData.url) {
+      var r2 = await fetch(imgData.url, { headers: buildHeaders(config) });
+      if (!r2.ok) throw new Error("结果图片下载失败：HTTP " + r2.status);
+      resultBuffer = await r2.arrayBuffer();
     } else {
-      var json = await response.json();
-      var img = NB.extractJsonImage(json);
-      if (img.url) {
-        var r2 = await fetch(img.url, { headers: headers });
-        if (!r2.ok) throw new Error("结果图片下载失败：HTTP " + r2.status);
-        resultBuffer = await r2.arrayBuffer();
-      } else {
-        resultBuffer = img.buffer;
-      }
+      resultBuffer = imgData.buffer;
     }
 
     return NB.arrayBufferToBase64(resultBuffer);

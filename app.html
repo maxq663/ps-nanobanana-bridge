@@ -39,7 +39,7 @@
 
         <div class="field">
           <label for="apiUrlInput">API 地址</label>
-          <input type="text" id="apiUrlInput" placeholder="https://ai.comfly.org/v1/images/edits" />
+          <input type="text" id="apiUrlInput" placeholder="https://ai.comfly.org/v1/images/generations" />
         </div>
 
         <div class="field">
@@ -104,10 +104,33 @@
         <div class="step-group">
           <div class="step-label"><span class="step-num">1</span><span class="step-text">捕获选区</span></div>
           <button class="btn-primary" id="uploadBtn">上传图层</button>
-          <div class="preview-box" id="previewSource">
-            <span class="preview-empty" id="previewSourceEmpty">框选区域后点击上传</span>
-            <img class="preview-img" id="previewSourceImg" />
+          <div class="image-grid" id="imageGrid">
+            <div class="image-slot" data-index="0">
+              <span class="slot-label">1</span>
+              <span class="slot-empty">拖入或点击上传</span>
+              <img class="slot-img" />
+              <button class="slot-remove">&times;</button>
+            </div>
+            <div class="image-slot" data-index="1">
+              <span class="slot-label">2</span>
+              <span class="slot-empty">拖入或点击上传</span>
+              <img class="slot-img" />
+              <button class="slot-remove">&times;</button>
+            </div>
+            <div class="image-slot" data-index="2">
+              <span class="slot-label">3</span>
+              <span class="slot-empty">拖入或点击上传</span>
+              <img class="slot-img" />
+              <button class="slot-remove">&times;</button>
+            </div>
+            <div class="image-slot" data-index="3">
+              <span class="slot-label">4</span>
+              <span class="slot-empty">拖入或点击上传</span>
+              <img class="slot-img" />
+              <button class="slot-remove">&times;</button>
+            </div>
           </div>
+          <div class="slot-hint">支持拖入图片文件或点击"上传图层"从 PS 捕获</div>
         </div>
 
         <div class="step-divider"></div>
