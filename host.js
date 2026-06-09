@@ -37,12 +37,10 @@
     };
   }
 
-  async function handleImportResult(args) {
-    var resultBase64 = args[0];
-    if (!resultBase64 || !NB.state.uploadedData) {
+  async function handleImportResult() {
+    if (!NB.state.apiResultBase64 || !NB.state.uploadedData) {
       throw new Error("没有可导入的结果。");
     }
-    NB.state.apiResultBase64 = resultBase64;
     await NB.importToPs();
     return { ok: true };
   }
@@ -77,13 +75,31 @@
     return { text: text, name: file.name };
   }
 
+  async function handleTestConnection(args) {
+    var config = args[0];
+    return await NB.testConnection(config);
+  }
+
+  async function handleSendToApi(args) {
+    var config = args[0];
+    var prompt = args[1];
+    var model = args[2];
+    if (!NB.state.uploadedData) throw new Error("请先上传图层。");
+    var imageBase64 = NB.arrayBufferToBase64(NB.state.uploadedData.bytes);
+    var resultBase64 = await NB.sendToApi(config, imageBase64, prompt, model);
+    NB.state.apiResultBase64 = resultBase64;
+    return { base64: resultBase64 };
+  }
+
   var handlers = {
     "ps.exportSelection": handleExportSelection,
     "ps.importResult": handleImportResult,
     "ps.getLayerStatus": handleGetLayerStatus,
     "config.load": handleConfigLoad,
     "config.save": handleConfigSave,
-    "config.loadPromptFile": handleLoadPromptFile
+    "config.loadPromptFile": handleLoadPromptFile,
+    "api.testConnection": handleTestConnection,
+    "api.send": handleSendToApi
   };
 
   async function handleMessage(msg) {
@@ -94,6 +110,13 @@
     return await handler(args);
   }
 
+  var modalMethods = {
+    "ps.exportSelection": true,
+    "ps.importResult": true,
+    "ps.getLayerStatus": true,
+    "config.loadPromptFile": true
+  };
+
   function onMessage(event) {
     var payload = event && event.data;
     if (!payload || typeof payload !== "object") return;
@@ -103,16 +126,29 @@
     }
     if (typeof payload.method !== "string" || !("id" in payload)) return;
 
-    NB.core.executeAsModal(async function () {
-      try {
-        var result = await handleMessage(payload);
-        sendResponse(payload.id, result, null);
-      } catch (e) {
+    var needsModal = modalMethods[payload.method];
+
+    if (needsModal) {
+      NB.core.executeAsModal(async function () {
+        try {
+          var result = await handleMessage(payload);
+          sendResponse(payload.id, result, null);
+        } catch (e) {
+          sendResponse(payload.id, null, e);
+        }
+      }, { commandName: "Bridge: " + payload.method }).catch(function (e) {
         sendResponse(payload.id, null, e);
-      }
-    }, { commandName: "Bridge: " + payload.method }).catch(function (e) {
-      sendResponse(payload.id, null, e);
-    });
+      });
+    } else {
+      (async function () {
+        try {
+          var result = await handleMessage(payload);
+          sendResponse(payload.id, result, null);
+        } catch (e) {
+          sendResponse(payload.id, null, e);
+        }
+      })();
+    }
   }
 
   window.addEventListener("message", onMessage);

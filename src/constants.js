@@ -13,15 +13,6 @@
   NB.fs = uxp.storage.localFileSystem;
   NB.secureStorage = uxp.storage.secureStorage;
 
-  NB.CONFIG_KEYS = {
-    apiUrl: "nanobanan.apiUrl",
-    apiKey: "nanobanan.apiKey",
-    authMode: "nanobanan.authMode",
-    model: "nanobanan.model",
-    prompt: "nanobanan.prompt",
-    fitBounds: "nanobanan.fitBounds"
-  };
-
   NB.DEFAULTS = {
     apiUrl: "https://ai.comfly.org/v1/images/edits",
     authMode: "api-key",
