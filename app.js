@@ -133,9 +133,18 @@
     var img = slot.querySelector(".slot-img");
     if (state.images[index]) {
       slot.classList.add("has-image");
-      img.src = state.images[index];
+      var b64 = state.images[index].replace(/^data:[^,]+,/, "");
+      var binary = atob(b64);
+      var bytes = new Uint8Array(binary.length);
+      for (var k = 0; k < binary.length; k++) bytes[k] = binary.charCodeAt(k);
+      var blob = new Blob([bytes], { type: "image/png" });
+      var url = URL.createObjectURL(blob);
+      if (img._blobUrl) URL.revokeObjectURL(img._blobUrl);
+      img._blobUrl = url;
+      img.src = url;
       img.style.display = "block";
     } else {
+      if (img._blobUrl) { URL.revokeObjectURL(img._blobUrl); img._blobUrl = null; }
       slot.classList.remove("has-image");
       img.src = "";
       img.style.display = "none";
