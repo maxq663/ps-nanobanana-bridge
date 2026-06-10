@@ -299,10 +299,24 @@
     var prompt = dom.promptInput.value.trim() || DEFAULTS.prompt;
     var model = dom.modelInput.value.trim() || DEFAULTS.model;
 
-    var result = await callHost("api.send", [config, prompt, model]);
+    try {
+      var result = await callHost("api.send", [config, prompt, model]);
+    } catch (e) {
+      dom.sendApiBtn.textContent = "上传API网站";
+      dom.previewResultEmpty.textContent = "API 返回结果";
+      throw e;
+    }
 
     state.hasResult = true;
-    dom.previewResultImg.src = "data:image/png;base64," + result.base64;
+    var b64 = result.base64;
+    var binary = atob(b64);
+    var bytes = new Uint8Array(binary.length);
+    for (var k = 0; k < binary.length; k++) bytes[k] = binary.charCodeAt(k);
+    var blob = new Blob([bytes], { type: "image/png" });
+    var url = URL.createObjectURL(blob);
+    if (dom.previewResultImg._blobUrl) URL.revokeObjectURL(dom.previewResultImg._blobUrl);
+    dom.previewResultImg._blobUrl = url;
+    dom.previewResultImg.src = url;
     dom.previewResultImg.style.display = "block";
     dom.previewResultEmpty.style.display = "none";
     dom.importPsBtn.disabled = false;
@@ -319,6 +333,8 @@
     state.hasResult = false;
     for (var i = 0; i < 4; i++) updateSlotUI(i);
     updateButtons();
+    if (dom.previewResultImg._blobUrl) { URL.revokeObjectURL(dom.previewResultImg._blobUrl); dom.previewResultImg._blobUrl = null; }
+    dom.previewResultImg.src = "";
     dom.previewResultImg.style.display = "none";
     dom.previewResultEmpty.style.display = "block";
     dom.previewResultEmpty.textContent = "API 返回结果";
