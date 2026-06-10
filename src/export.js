@@ -28,60 +28,63 @@
     var w = Math.ceil(bounds.right - bounds.left);
     var h = Math.ceil(bounds.bottom - bounds.top);
     var squareSize = Math.max(w, h);
+    var layerName = hasSelection ? "选区" : (doc.activeLayers[0] ? doc.activeLayers[0].name : "图层");
 
     var dupDoc = await doc.duplicate();
-    NB.app.activeDocument = dupDoc;
+    try {
+      NB.app.activeDocument = dupDoc;
+      await dupDoc.flatten();
 
-    dupDoc.flatten();
+      var t = Number(bounds.top);
+      var l = Number(bounds.left);
+      var b = Number(bounds.bottom);
+      var r = Number(bounds.right);
 
-    var t = Number(bounds.top);
-    var l = Number(bounds.left);
-    var b = Number(bounds.bottom);
-    var r = Number(bounds.right);
+      await NB.batchPlay([{
+        _obj: "set",
+        _target: [{ _ref: "channel", _property: "selection" }],
+        to: {
+          _obj: "rectangle",
+          top: { _unit: "pixelsUnit", _value: t },
+          left: { _unit: "pixelsUnit", _value: l },
+          bottom: { _unit: "pixelsUnit", _value: b },
+          right: { _unit: "pixelsUnit", _value: r }
+        }
+      }], {});
 
-    await NB.batchPlay([{
-      _obj: "set",
-      _target: [{ _ref: "channel", _property: "selection" }],
-      to: {
-        _obj: "rectangle",
-        top: { _unit: "pixelsUnit", _value: t },
-        left: { _unit: "pixelsUnit", _value: l },
-        bottom: { _unit: "pixelsUnit", _value: b },
-        right: { _unit: "pixelsUnit", _value: r }
+      await NB.batchPlay([{
+        _obj: "crop",
+        to: {
+          _obj: "rectangle",
+          top: { _unit: "pixelsUnit", _value: t },
+          left: { _unit: "pixelsUnit", _value: l },
+          bottom: { _unit: "pixelsUnit", _value: b },
+          right: { _unit: "pixelsUnit", _value: r }
+        },
+        angle: { _unit: "angleUnit", _value: 0 }
+      }], {});
+
+      await NB.batchPlay([{
+        _obj: "canvasSize",
+        width: { _unit: "pixelsUnit", _value: squareSize },
+        height: { _unit: "pixelsUnit", _value: squareSize },
+        horizontal: { _enum: "horizontalLocation", _value: "center" },
+        vertical: { _enum: "verticalLocation", _value: "center" },
+        canvasExtensionColorType: { _enum: "canvasExtensionColorType", _value: "backgroundColor" }
+      }], {});
+
+      var maxDim = NB.DEFAULTS.maxExportSize || 2048;
+      if (squareSize > maxDim) {
+        dupDoc.resizeImage(maxDim, maxDim);
       }
-    }], {});
 
-    await NB.batchPlay([{
-      _obj: "crop",
-      to: {
-        _obj: "rectangle",
-        top: { _unit: "pixelsUnit", _value: t },
-        left: { _unit: "pixelsUnit", _value: l },
-        bottom: { _unit: "pixelsUnit", _value: b },
-        right: { _unit: "pixelsUnit", _value: r }
-      },
-      angle: { _unit: "angleUnit", _value: 0 }
-    }], {});
-
-    var padLeft = Math.round((squareSize - w) / 2);
-    var padTop = Math.round((squareSize - h) / 2);
-    await NB.batchPlay([{
-      _obj: "canvasSize",
-      width: { _unit: "pixelsUnit", _value: squareSize },
-      height: { _unit: "pixelsUnit", _value: squareSize },
-      horizontal: { _enum: "horizontalLocation", _value: "center" },
-      vertical: { _enum: "verticalLocation", _value: "center" },
-      canvasExtensionColorType: { _enum: "canvasExtensionColorType", _value: "backgroundColor" }
-    }], {});
-
-    var maxDim = NB.DEFAULTS.maxExportSize || 2048;
-    if (squareSize > maxDim) {
-      dupDoc.resizeImage(maxDim, maxDim);
+      var exportFile = await createTempFile("nanobanan-sel", "png");
+      await dupDoc.saveAs.png(exportFile, { compression: 6 }, true);
+      dupDoc.closeWithoutSaving();
+    } catch (e) {
+      try { dupDoc.closeWithoutSaving(); } catch (_) {}
+      throw e;
     }
-
-    var exportFile = await createTempFile("nanobanan-sel", "png");
-    await dupDoc.saveAs.png(exportFile, { compression: 6 }, true);
-    dupDoc.closeWithoutSaving();
 
     NB.app.activeDocument = doc;
 
@@ -90,7 +93,7 @@
       sourceDoc: doc,
       squareSize: squareSize,
       bounds: { left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom, width: w, height: h },
-      layerName: hasSelection ? "选区" : (doc.activeLayers[0] ? doc.activeLayers[0].name : "图层")
+      layerName: layerName
     };
   }
 

@@ -1,6 +1,9 @@
 (function () {
   "use strict";
 
+  var VERSION = "v1.0.1";
+  var VERSION_DATE = "2026-06-10 21:05";
+
   var seq = 0;
   var pending = new Map();
 
@@ -56,6 +59,7 @@
     testBtn: $("testBtn"),
     saveConfigBtn: $("saveConfigBtn"),
     refreshBtn: $("refreshBtn"),
+    versionBtn: $("versionBtn"),
     loadPromptBtn: $("loadPromptBtn")
   };
 
@@ -230,12 +234,14 @@
 
   async function doLoadConfig() {
     var data = await callHost("config.load");
-    dom.apiUrlInput.value = data.api.url || DEFAULTS.apiUrl;
-    dom.apiKeyInput.value = data.api.key || "";
-    setAuthMode(data.api.authMode || DEFAULTS.authMode);
-    setModelValue(data.api.model || DEFAULTS.model);
-    dom.promptInput.value = data.params.prompt || DEFAULTS.prompt;
-    setFitBounds(data.params.fitBounds !== false);
+    var api = (data && data.api) || {};
+    var params = (data && data.params) || {};
+    dom.apiUrlInput.value = api.url || DEFAULTS.apiUrl;
+    dom.apiKeyInput.value = api.key || "";
+    setAuthMode(api.authMode || DEFAULTS.authMode);
+    setModelValue(api.model || DEFAULTS.model);
+    dom.promptInput.value = params.prompt || DEFAULTS.prompt;
+    setFitBounds(params.fitBounds !== false);
     var info = await callHost("ps.getLayerStatus");
     dom.layerStatus.textContent = info.text;
   }
@@ -394,6 +400,9 @@
   // --- Event Bindings ---
 
   dom.refreshBtn.addEventListener("click", function () { withBusy(doRefresh); });
+  dom.versionBtn.addEventListener("click", function () {
+    setStatus("我心的赛博工具 " + VERSION + " | 更新日期: " + VERSION_DATE, "ok");
+  });
   dom.saveConfigBtn.addEventListener("click", function () { withBusy(doSaveConfig); });
   dom.testBtn.addEventListener("click", function () { withBusy(doTestConnection); });
   dom.uploadBtn.addEventListener("click", function () { withBusy(doUpload); });
