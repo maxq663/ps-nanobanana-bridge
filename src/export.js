@@ -4,7 +4,7 @@
     return folder.createFile(prefix + "-" + Date.now() + "." + ext, { overwrite: true });
   }
 
-  async function exportSelection() {
+  async function exportSelection(aspectRatio) {
     var doc = NB.getActiveDocument();
     if (!doc) throw new Error("请先打开一个 Photoshop 文档。");
 
@@ -27,7 +27,8 @@
 
     var w = Math.ceil(bounds.right - bounds.left);
     var h = Math.ceil(bounds.bottom - bounds.top);
-    var squareSize = Math.max(w, h);
+    var padToSquare = !aspectRatio;
+    var squareSize = padToSquare ? Math.max(w, h) : Math.max(w, h);
     var layerName = hasSelection ? "选区" : (doc.activeLayers[0] ? doc.activeLayers[0].name : "图层");
 
     var dupDoc = await doc.duplicate();
@@ -64,18 +65,26 @@
         angle: { _unit: "angleUnit", _value: 0 }
       }], {});
 
-      await NB.batchPlay([{
-        _obj: "canvasSize",
-        width: { _unit: "pixelsUnit", _value: squareSize },
-        height: { _unit: "pixelsUnit", _value: squareSize },
-        horizontal: { _enum: "horizontalLocation", _value: "center" },
-        vertical: { _enum: "verticalLocation", _value: "center" },
-        canvasExtensionColorType: { _enum: "canvasExtensionColorType", _value: "backgroundColor" }
-      }], {});
+      if (padToSquare) {
+        await NB.batchPlay([{
+          _obj: "canvasSize",
+          width: { _unit: "pixelsUnit", _value: squareSize },
+          height: { _unit: "pixelsUnit", _value: squareSize },
+          horizontal: { _enum: "horizontalLocation", _value: "center" },
+          vertical: { _enum: "verticalLocation", _value: "center" },
+          canvasExtensionColorType: { _enum: "canvasExtensionColorType", _value: "backgroundColor" }
+        }], {});
+      }
 
       var maxDim = NB.DEFAULTS.maxExportSize || 2048;
-      if (squareSize > maxDim) {
-        dupDoc.resizeImage(maxDim, maxDim);
+      var currentMax = padToSquare ? squareSize : Math.max(w, h);
+      if (currentMax > maxDim) {
+        if (padToSquare) {
+          dupDoc.resizeImage(maxDim, maxDim);
+        } else {
+          var scale = maxDim / currentMax;
+          dupDoc.resizeImage(Math.round(w * scale), Math.round(h * scale));
+        }
       }
 
       var exportFile = await createTempFile("nanobanan-sel", "png");

@@ -25,7 +25,9 @@
 
   async function handleExportSelection(args) {
     var index = (args[0] != null) ? args[0] : 0;
-    var data = await NB.exportSelection();
+    var aspectRatio = args[1] || "";
+    NB.state.currentAspectRatio = aspectRatio;
+    var data = await NB.exportSelection(aspectRatio);
     var bytes = await data.file.read({ format: NB.formats.binary });
     var base64 = NB.arrayBufferToBase64(bytes);
     data.bytes = bytes;
@@ -104,9 +106,11 @@
     var config = args[0];
     var prompt = args[1];
     var model = args[2];
+    var aspectRatio = args[3] || "";
+    var imageSize = args[4] || "";
     var hasAny = NB.state.uploadedImages.some(function (img) { return img !== null; });
     if (!hasAny) throw new Error("请先上传至少一张图片。");
-    var resultBase64 = await NB.sendToApi(config, prompt, model);
+    var resultBase64 = await NB.sendToApi(config, prompt, model, aspectRatio, imageSize);
     NB.state.apiResultBase64 = resultBase64;
     return { base64: resultBase64 };
   }

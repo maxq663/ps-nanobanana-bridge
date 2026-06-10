@@ -57,7 +57,7 @@
     throw new Error("HTTP " + response.status + " " + text.slice(0, 120));
   }
 
-  async function sendToApi(config, prompt, model) {
+  async function sendToApi(config, prompt, model, aspectRatio, imageSize) {
     var apiUrl = normalizeApiUrl(config.url);
     var headers = buildHeaders(config);
     headers["Content-Type"] = "application/json";
@@ -78,6 +78,8 @@
       response_format: "b64_json"
     };
     if (imageArray.length > 0) body.image = imageArray;
+    if (aspectRatio) body.aspect_ratio = aspectRatio;
+    if (imageSize) body.image_size = imageSize;
 
     var response;
     try {

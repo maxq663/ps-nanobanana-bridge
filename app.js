@@ -48,6 +48,8 @@
     apiKeyInput: $("apiKeyInput"),
     authModeInput: $("authModeInput"),
     modelInput: $("modelInput"),
+    aspectRatioInput: $("aspectRatioInput"),
+    imageSizeInput: $("imageSizeInput"),
     promptInput: $("promptInput"),
     fitBoundsBtn: $("fitBoundsInput"),
     uploadBtn: $("uploadBtn"),
@@ -240,6 +242,8 @@
     dom.apiKeyInput.value = api.key || "";
     setAuthMode(api.authMode || DEFAULTS.authMode);
     setModelValue(api.model || DEFAULTS.model);
+    dom.aspectRatioInput.value = api.aspectRatio || "";
+    dom.imageSizeInput.value = api.imageSize || "";
     dom.promptInput.value = params.prompt || DEFAULTS.prompt;
     setFitBounds(params.fitBounds !== false);
     var info = await callHost("ps.getLayerStatus");
@@ -252,7 +256,9 @@
         url: dom.apiUrlInput.value.trim() || DEFAULTS.apiUrl,
         key: dom.apiKeyInput.value.trim(),
         authMode: state.currentAuthMode,
-        model: dom.modelInput.value || DEFAULTS.model
+        model: dom.modelInput.value || DEFAULTS.model,
+        aspectRatio: dom.aspectRatioInput.value || "",
+        imageSize: dom.imageSizeInput.value || ""
       },
       params: {
         prompt: dom.promptInput.value.trim() || DEFAULTS.prompt,
@@ -281,7 +287,8 @@
     var index = getNextEmptySlot();
     if (index === -1) { setStatus("所有槽位已满，请先删除再上传。", "bad"); return; }
     setStatus("正在导出框选区域...");
-    var result = await callHost("ps.exportSelection", [index]);
+    var aspectRatio = dom.aspectRatioInput.value || "";
+    var result = await callHost("ps.exportSelection", [index, aspectRatio]);
     state.images[index] = "data:image/png;base64," + result.base64;
     updateSlotUI(index);
     updateButtons();
@@ -298,9 +305,11 @@
     var config = getApiConfig();
     var prompt = dom.promptInput.value.trim() || DEFAULTS.prompt;
     var model = dom.modelInput.value.trim() || DEFAULTS.model;
+    var aspectRatio = dom.aspectRatioInput.value || "";
+    var imageSize = dom.imageSizeInput.value || "";
 
     try {
-      var result = await callHost("api.send", [config, prompt, model]);
+      var result = await callHost("api.send", [config, prompt, model, aspectRatio, imageSize]);
     } catch (e) {
       dom.sendApiBtn.textContent = "上传API网站";
       dom.previewResultEmpty.textContent = "API 返回结果";
